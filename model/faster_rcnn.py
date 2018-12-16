@@ -88,6 +88,8 @@ class FasterRCNN(nn.Module):
         return self.head.n_class
 
     def forward(self, x, scale=1.):
+        heatmap = x[1]
+        x = x[0]
         """Forward Faster R-CNN.
 
         Scaling paramter :obj:`scale` is used by RPN to determine the
@@ -130,7 +132,7 @@ class FasterRCNN(nn.Module):
         rpn_locs, rpn_scores, rois, roi_indices, anchor = \
             self.rpn(h, img_size, scale)
         roi_cls_locs, roi_scores = self.head(
-            h, rois, roi_indices)
+            h, rois, roi_indices, heatmap)
         return roi_cls_locs, roi_scores, rois, roi_indices
 
     def use_preset(self, preset):
@@ -212,6 +214,8 @@ class FasterRCNN(nn.Module):
                Each value indicates how confident the prediction is.
 
         """
+        heatmap = imgs[1]
+        imgs = imgs[0]
         self.eval()
         if visualize:
             self.use_preset('visualize')
@@ -230,7 +234,7 @@ class FasterRCNN(nn.Module):
         for img, size in zip(prepared_imgs, sizes):
             img = at.totensor(img[None]).float()
             scale = img.shape[3] / size[1]
-            roi_cls_loc, roi_scores, rois, _ = self(img, scale=scale)
+            roi_cls_loc, roi_scores, rois, _ = self([img, heatmap], scale=scale)
             # We are assuming that batch size is 1.
             roi_score = roi_scores.data
             roi_cls_loc = roi_cls_loc.data

@@ -12,7 +12,7 @@ import json
 from collections import OrderedDict
 from utils.eval_script.coco import COCO
 from utils.eval_script.eval_MR_multisetup import COCOeval
-
+from utils.config import opt
 def save_result_json(pred_bboxes, pred_labels, pred_scores,
         gt_bboxes, gt_labels, gt_image_ids):
     res = []
@@ -26,7 +26,7 @@ def save_result_json(pred_bboxes, pred_labels, pred_scores,
             res.append(tmp)
 
     annType = 'bbox'
-    annFile = '/home/baek/simple-faster-rcnn-pytorch/val_gt.json'
+    annFile = opt.annFile
     resFile = res
     # initialize COCO detections api
 

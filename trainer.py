@@ -62,7 +62,7 @@ class FasterRCNNTrainer(nn.Module):
         self.roi_cm = ConfusionMeter(21)
         self.meters = {k: AverageValueMeter() for k in LossTuple._fields}  # average loss
 
-    def forward(self, imgs, bboxes, labels, scale):
+    def forward(self, imgs, bboxes, heatmaps,labels, scale):
         """Forward Faster R-CNN and calculate losses.
 
         Here are notations used.
@@ -120,7 +120,8 @@ class FasterRCNNTrainer(nn.Module):
         roi_cls_loc, roi_score = self.faster_rcnn.head(
             features,
             sample_roi,
-            sample_roi_index)
+            sample_roi_index,
+            heatmaps)
 
         # ------------------ RPN losses -------------------#
         gt_rpn_loc, gt_rpn_label = self.anchor_target_creator(
@@ -164,9 +165,9 @@ class FasterRCNNTrainer(nn.Module):
 
         return LossTuple(*losses)
 
-    def train_step(self, imgs, bboxes, labels, scale):
+    def train_step(self, imgs, bboxes, heatmaps,labels, scale):
         self.optimizer.zero_grad()
-        losses = self.forward(imgs, bboxes, labels, scale)
+        losses = self.forward(imgs, bboxes, heatmaps, labels, scale)
         losses.total_loss.backward()
         self.optimizer.step()
         self.update_meters(losses)
@@ -195,10 +196,10 @@ class FasterRCNNTrainer(nn.Module):
             save_dict['optimizer'] = self.optimizer.state_dict()
 
         if save_path is None:
-            timestr = time.strftime('%m%d%H%M')
-            save_path = 'checkpoints/fasterrcnn_%s' % timestr
-            for k_, v_ in kwargs.items():
-                save_path += '_%s' % v_
+            #timestr = time.strftime('%m%d%H%M')
+            save_path = 'checkpoints/fasterrcnn' + opt.env + '.pth'
+            #for k_, v_ in kwargs.items():
+                #save_path += '_%s' % v_
 
         save_dir = os.path.dirname(save_path)
         if not os.path.exists(save_dir):

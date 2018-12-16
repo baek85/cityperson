@@ -30,23 +30,22 @@ def eval(dataloader, faster_rcnn, test_num=10000):
     pred_bboxes, pred_labels, pred_scores = list(), list(), list()
     gt_bboxes, gt_labels, gt_difficults = list(), list(), list()
     gt_image_ids = list()
-    for ii, (imgs, sizes, gt_bboxes_, gt_labels_, gt_difficults_, image_id) in tqdm(enumerate(dataloader)):
+    for ii, (imgs, sizes, gt_bboxes_, heatmap ,gt_labels_, gt_difficults_, image_id) in tqdm(enumerate(dataloader)):
         sizes = [sizes[0][0].item(), sizes[1][0].item()]
-        pred_bboxes_, pred_labels_, pred_scores_ = faster_rcnn.predict(imgs, [sizes])
+        pred_bboxes_, pred_labels_, pred_scores_ = faster_rcnn.predict([imgs, heatmap], [sizes])
         gt_bboxes += list(gt_bboxes_.numpy())
         gt_labels += list(gt_labels_.numpy())
         gt_difficults += list(gt_difficults_.numpy())
         pred_bboxes += pred_bboxes_
         pred_labels += pred_labels_
         pred_scores += pred_scores_
-
         gt_image_ids.append(image_id)
         if ii == test_num: break
         #if ii == 10: break
     
 
-    save_result_json(pred_bboxes, pred_labels, pred_scores,
-        gt_bboxes, gt_labels, gt_image_ids)
+    #save_result_json(pred_bboxes, pred_labels, pred_scores,
+    #    gt_bboxes, gt_labels, gt_image_ids)
 
     result = eval_detection_voc(
         pred_bboxes, pred_labels, pred_scores,
@@ -82,13 +81,17 @@ def train(**kwargs):
     trainer.vis.text(dataset.db.label_names, win='labels')
     best_map = 0
     lr_ = opt.lr
-    #eval_result = eval(test_dataloader, faster_rcnn, test_num=opt.test_num)
+    eval_result = eval(test_dataloader, faster_rcnn, test_num=opt.test_num)
     for epoch in range(opt.epoch):
+        print('Epoch', epoch, 'start')
         trainer.reset_meters()
-        for ii, (img, bbox_, label_, scale) in tqdm(enumerate(dataloader)):
+        #for ii, (img, bbox_, label_, scale) in tqdm(enumerate(dataloader)):
+        for ii, (img, bbox_, heatmap_, label_, scale) in tqdm(enumerate(dataloader)):
             scale = at.scalar(scale)
-            img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()
-            trainer.train_step(img, bbox, label, scale)
+            #img, bbox, label = img.cuda().float(), bbox_.cuda(), label_.cuda()
+            img, bbox, heatmap ,label = img.cuda().float(), bbox_.cuda(), heatmap_,label_.cuda()
+            #trainer.train_step(img, bbox, label, scale)
+            trainer.train_step(img, bbox, heatmap,label, scale)
 
             if (ii + 1) % opt.plot_every == 0:
                 if os.path.exists(opt.debug_file):
@@ -105,7 +108,7 @@ def train(**kwargs):
                 trainer.vis.img('gt_img', gt_img)
 
                 # plot predicti bboxes
-                _bboxes, _labels, _scores = trainer.faster_rcnn.predict([ori_img_], visualize=True)
+                _bboxes, _labels, _scores = trainer.faster_rcnn.predict([[ori_img_], heatmap], visualize=True)
                 pred_img = visdom_bbox(ori_img_,
                                        at.tonumpy(_bboxes[0]),
                                        at.tonumpy(_labels[0]).reshape(-1),

@@ -114,7 +114,7 @@ class VGG16RoIHead(nn.Module):
         self.spatial_scale = spatial_scale
         self.roi = RoIPooling2D(self.roi_size, self.roi_size, self.spatial_scale)
 
-    def forward(self, x, rois, roi_indices):
+    def forward(self, x, rois, roi_indices, heatmaps):
         """Forward the chain.
 
         We assume that there are :math:`N` batches.
@@ -140,6 +140,8 @@ class VGG16RoIHead(nn.Module):
         indices_and_rois =  xy_indices_and_rois.contiguous()
 
         pool = self.roi(x, indices_and_rois)
+
+
         pool = pool.view(pool.size(0), -1)
         fc7 = self.classifier(pool)
         roi_cls_locs = self.cls_loc(fc7)

@@ -6,7 +6,7 @@ import numpy as np
 #from mxtorch.vision.bbox_tools import resize_bbox
 #from data.dataset import caffe_normalize
 from data.util import read_image, resize_bbox
-
+import pickle
 
 def get_valid_data(annotation_path, img_path):
     """Get all valid images and annotations, which contain people.
@@ -84,6 +84,10 @@ class CityPersonTrainset:
         img_name = self.img_list[item]
         ori_img = read_image(img_name)
         difficult = list()
+        # Get heatmap
+        heatmap_name = img_name.replace('/leftImg8bit', '/heatmap')
+        heatmap_name = heatmap_name.replace('.png', '.pt')
+        with open(heatmap_name, 'rb') as _f: heatmap = pickle.load(_f)
         # Get bounding boxes annotation.
         annotation = self.annotation_list[item]
         with open(annotation, 'r') as f:
@@ -100,7 +104,8 @@ class CityPersonTrainset:
         
         difficult = np.array(difficult, dtype=np.bool).astype(np.uint8)  # PyTorch don't support np.bool
 
-        return ori_img, bbox, label, difficult
+        return ori_img, bbox, heatmap, label, difficult
+
 
     def __len__(self):
         return len(self.img_list)
@@ -108,7 +113,7 @@ class CityPersonTrainset:
     __getitem__ = get_example
 
 
-class CityPersonTestset(object):
+class CityDataset(object):
     def __init__(self, img_path, annotation_path):
         self.annotation_list, self.img_list, self.image_id_list = get_valid_data2(annotation_path, img_path)
         self.label_names = CITYPERSON_BBOX_LABEL_NAMES
@@ -117,7 +122,13 @@ class CityPersonTestset(object):
         img_name = self.img_list[item]
         image_id = self.image_id_list[item]
         ori_img = read_image(img_name)
+        # Get heatmap
+        heatmap_name = img_name.replace('/leftImg8bit', '/heatmap')
+        heatmap_name = heatmap_name.replace('.png', '.pt')
+        with open(heatmap_name, 'rb') as _f: heatmap = pickle.load(_f)
+        # Get annotation
         annotation = self.annotation_list[item]
+        
         with open(annotation, 'r') as f:
             annot = json.load(f)
         bbox_list = list()
@@ -134,7 +145,7 @@ class CityPersonTestset(object):
         # Get difficult.
         difficult = np.zeros(label.shape, dtype=np.uint8)
 
-        return ori_img, bbox, label, difficult, image_id
+        return ori_img, bbox, heatmap,label, difficult, image_id
         
     def __len__(self):
         return len(self.img_list)

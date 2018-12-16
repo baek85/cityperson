@@ -9,7 +9,10 @@ class Config:
     # data
     voc_data_dir = '/home/baek/homework/faster-rcnn.pytorch/data/VOCdevkit2007/VOC2007/'
     cityperson_data_dir = '/home/baek/dataset/cityscapes'
-
+    #======#
+    annFile = '/home/baek/cityperson/val_gt.json'
+    deeper = False
+    #======#
     min_size = 600  # image resize
     max_size = 1000 # image resize
     num_workers = 8
